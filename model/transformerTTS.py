@@ -486,3 +486,112 @@ class TransformerTTSLoss(nn.Module):
         stp_loss = self.bcl(stp_out, stp_grnd)
         tot_loss = mel_loss + stp_loss
         return tot_loss, mel_loss, stp_loss
+
+
+def get_model_input(
+    batch: tuple[Tensor, Tensor, Tensor, Tensor, Tensor],
+    r_cfg: dict[str, dict[str, Any]],
+) -> tuple[
+    Tensor,
+    Tensor,
+    Tensor,
+    Tensor,
+    dict[str, float],
+    dict[str, list[int]],
+    dict[str, list[int]],
+    bool,
+]:
+    """
+    Args:
+    - batch:
+        - tokids_lens: [batch_size]
+        - pad_tokids: [batch_size, tok_len]
+        - mel_lens: [batch_size]
+        - pad_mel: [batch_size, mel_len, mel_dim]
+        - pad_stp: [batch_size, mel_len]
+    - r_cfg:
+        - dropout: tok_prenet, mel_prenet, encoder, decoder, mel_postnet
+        - need_attns: enc_self, dec_self, dec_cros
+        - need_block_outs: encoder, decoder
+        - train: mask_output
+    ---
+    Returns:
+    - tok_lens: [batch_size]
+    - X_tok: [batch_size, tok_len]
+    - mel_lens: [batch_size]
+    - X_mel: [batch_size, mel_len, mel_dim]
+    - dropouts: tok_prenet, mel_prenet, encoder, decoder, mel_postnet
+    - need_attns: enc_self, dec_self, dec_cros
+    - need_block_outs: encoder, decoder
+    - mask_output
+    """
+    tokids_lens, pad_tokids, mel_lens, pad_mel, pad_stp = batch
+    dropouts: dict[str, float] = {
+        name: r_cfg["dropout"][name]
+        for name in ["tok_prenet", "mel_prenet", "encoder", "decoder", "mel_postnet"]
+    }
+    need_attns: dict[str, list[int]] = {
+        name: r_cfg["need_attns"][name] for name in ["enc_self", "dec_self", "dec_cros"]
+    }
+    need_block_outs: dict[str, list[int]] = {
+        name: r_cfg["need_block_outs"][name] for name in ["encoder", "decoder"]
+    }
+    mask_output: bool = r_cfg["train"]["mask_output"]
+    return (
+        tokids_lens,
+        pad_tokids,
+        mel_lens,
+        pad_mel,
+        dropouts,
+        need_attns,
+        need_block_outs,
+        mask_output,
+    )
+
+
+def get_assess_input(
+    batch: tuple[Tensor, Tensor, Tensor, Tensor, Tensor],
+    model_output: tuple[Tensor, Tensor, Tensor, dict[str, list[Optional[Tensor]]]],
+) -> tuple[tuple[Tensor, Tensor, Tensor], tuple[Tensor, Tensor, Tensor]]:
+    """
+    Args:
+    - batch:
+        - tokids_lens: [batch_size]
+        - pad_tokids: [batch_size, tok_len]
+        - mel_lens: [batch_size]
+        - pad_mel: [batch_size, mel_len, mel_dim]
+        - pad_stp: [batch_size, mel_len]
+    - model_output:
+        - mel_out/mel_out_post: [batch_size, mel_len, mel_dim]
+        - stp_out: [batch_size, mel_len]
+        - attns: enc_self, dec_self, dec_cros
+        - block_outs: encoder, decoder
+    ---
+    Returns:
+    - pred_outputs: mel_out, mel_out_post, stp_out
+    - grnd_targets: mel_lens, pad_mel, pad_stp
+    """
+    tokids_lens, pad_tokids, mel_lens, pad_mel, pad_stp = batch
+    mel_out, mel_out_post, stp_out, attns, block_outs = model_output
+    return tuple([mel_out, mel_out_post, stp_out]), tuple([mel_lens, pad_mel, pad_stp])
+
+
+def backward(assess_output: tuple[Tensor, Tensor, Tensor]):
+    tot_loss = assess_output[0]
+    tot_loss.backward()
+
+
+def get_logger_input(assess_output: tuple[Tensor, Tensor, Tensor]) -> dict[str, float]:
+    """
+    Args:
+    - assess_output: tot_loss, mel_loss, stp_loss
+    ---
+    Returns:
+    - logger_input: tot_loss, mel_loss, stp_loss
+    """
+    tot_loss, mel_loss, stp_loss = assess_output
+    return {
+        "tot_loss": tot_loss.item(),
+        "mel_loss": mel_loss.item(),
+        "stp_loss": stp_loss.item(),
+    }
