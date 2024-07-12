@@ -71,21 +71,19 @@ if __name__ == "__main__":
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     # -----Create Model-----
-    ckpt_path = f"model/{model_name}/exp1/ckpt_best.pth"
+    ckpt_path = f"Runtime/cache/{model_name}/exp1/ckpt_best.pth"
+    model = Model(m_cfg)
+    optim = Adam(
+        model.parameters(),
+        lr=r_cfg["optim"]["lr_init"],
+        betas=r_cfg["optim"]["betas"],
+        eps=r_cfg["optim"]["eps"],
+        weight_decay=r_cfg["optim"]["weight_decay"],
+    )
     if os.path.isfile(ckpt_path):
-        _, model, optim, cur_step, cur_loss, bes_loss = load_ckpt(ckpt_path, True)
+        _, cur_step, cur_loss, bes_loss = load_ckpt(ckpt_path, model, optim, True)
     else:
-        model = Model(m_cfg)
-        optim = Adam(
-            model.parameters(),
-            lr=r_cfg["optim"]["lr_init"],
-            betas=r_cfg["optim"]["betas"],
-            eps=r_cfg["optim"]["eps"],
-            weight_decay=r_cfg["optim"]["weight_decay"],
-        )
-        cur_step = 1
-        cur_loss = float("inf")
-        bes_loss = float("inf")
+        cur_step, cur_loss, bes_loss = 1, float("inf"), float("inf")
     assess = Loss(m_cfg)
     scheduler = Scheduler(r_cfg)
     if model_name == valid_models[0]:
@@ -121,7 +119,7 @@ if __name__ == "__main__":
     else:
         # -----Load Dataset-----
         # path relative to the whole module
-        biaobei_original_dir = "../../data/data-baker"
+        biaobei_original_dir = "../data/data-baker"
         dat_dir = r_cfg["general"]["dat_dir"]
         if not os.path.isdir(dat_dir):
             build_from_biaobei(biaobei_original_dir, dat_dir, d_cfg)

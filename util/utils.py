@@ -229,12 +229,12 @@ def show_data(
 
 
 def load_ckpt(
-    ckpt_path: str, show_hint: bool = True
-) -> tuple[str, nn.Module, Optimizer, int, float, float]:
-    """hint, model, optim, cur_step, cur_loss, bes_loss"""
+    ckpt_path: str, model: nn.Module, optim: Optimizer, show_hint: bool = True
+) -> tuple[str, int, float, float]:
+    """hint, cur_step, cur_loss, bes_loss"""
     ckpt = torch.load(ckpt_path)
-    model = ckpt["model"]
-    optim = ckpt["optim"]
+    model.load_state_dict(ckpt["model"])
+    optim.load_state_dict(ckpt["optim"])
     cur_step = ckpt["step"]
     cur_loss = ckpt["cur_loss"]
     bes_loss = ckpt["bes_loss"]
@@ -250,7 +250,7 @@ def load_ckpt(
     )
     if show_hint:
         print(load_hint)
-    return load_hint, model, optim, cur_step + 1, cur_loss, bes_loss
+    return load_hint, cur_step + 1, cur_loss, bes_loss
 
 
 def save_ckpt(
@@ -265,8 +265,8 @@ def save_ckpt(
     os.makedirs(os.path.dirname(ckpt_path), exist_ok=True)
     torch.save(
         {
-            "model": model,
-            "optim": optim,
+            "model": model.state_dict(),
+            "optim": optim.state_dict(),
             "step": cur_step,
             "cur_loss": cur_loss,
             "bes_loss": bes_loss,
