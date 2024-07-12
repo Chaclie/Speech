@@ -66,7 +66,7 @@ transformerTTS_runtime_config: dict[str, dict[str, Any]] = {
         "dat_dir": "data/biaobei_trim_nopad",  #
         "log_dir": "log/transformerTTS/exp1",
         "gen_dir": "gen/transformerTTS/exp1",
-        "sav_dir": "model/transformerTTS/exp1",
+        "sav_dir": "cache/transformerTTS/exp1",
         "total_size": 10000,
         "train_size": 9800,
         "valid_size": 200,
