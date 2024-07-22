@@ -158,3 +158,36 @@ class TokMelCollate:
         # pad_mel: [batch_size, max_mel_len, mel_dim]
         # pad_stp: [batch_size, max_mel_len]
         return tokids_lens, pad_tokids, mel_lens, pad_mel, pad_stp
+
+
+class TokMelCollateWithoutStop:
+    def __init__(self):
+        pass
+
+    def __call__(
+        self, batch: list[tuple[list[int], Tensor]]
+    ) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
+        batch_size = len(batch)
+        # pad tokids in the order of descending length
+        tokids_lens, orders = torch.tensor([len(tokids) for tokids, _ in batch]).sort(
+            dim=0, descending=True
+        )
+        max_tokids_len = tokids_lens[0]
+        pad_tokids = torch.zeros([batch_size, max_tokids_len], dtype=torch.int)
+        for i in range(batch_size):
+            pad_tokids[i, : len(batch[orders[i]][0])] = torch.tensor(
+                batch[orders[i]][0]
+            )
+        # pad mels in the same order
+        mel_dim = batch[0][1].shape[1]
+        mel_lens = torch.tensor(
+            [batch[orders[i]][1].shape[0] for i in range(batch_size)]
+        )
+        max_mel_len = torch.max(mel_lens)
+        pad_mel = torch.zeros([batch_size, max_mel_len, mel_dim])
+        for i in range(batch_size):
+            pad_mel[i, : mel_lens[i], :] = batch[orders[i]][1]
+        # tokids_lens/mel_lens: [batch_size]
+        # pad_tokids: [batch_size, max_tokids_len]
+        # pad_mel: [batch_size, max_mel_len, mel_dim]
+        return tokids_lens, pad_tokids, mel_lens, pad_mel
