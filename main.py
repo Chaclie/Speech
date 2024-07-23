@@ -29,7 +29,7 @@ if __name__ == "__main__":
     contrast_mode: bool = len(contrast_input) > 0
     test_name: str = test_name if test_name else ("test" if gen_mode else "contrast")
     contrast_input: list[str] = contrast_input.split()
-    valid_models: list[str] = ["transformerTTS"]
+    valid_models: list[str] = ["transformerTTS", "TokVMelNet"]
     if model_name == valid_models[0]:
         from .config import (
             data_process_config as d_cfg,
@@ -42,6 +42,15 @@ if __name__ == "__main__":
             TransformerTTSLoss as Loss,
         )
         from .run.transformerTTS import train, contrast, generate as generate_TTS
+    elif model_name == valid_models[1]:
+        from .config import (
+            data_process_config as d_cfg,
+            TokVMelNet_model_config as m_cfg,
+            TokVMelNet_runtime_config as r_cfg,
+        )
+        from .util.datasets import TokMelCollateWithoutStop as Collate
+        from .model.TokVMelNet import TokVMelNet as Model, TokVMelNetLoss as Loss
+        from .run.TokVMelNet import train, contrast, generate_TTS
     else:
         raise ValueError(f"model_name({model_name}) should be in {valid_models}")
     # -----Init Config-----
@@ -55,6 +64,17 @@ if __name__ == "__main__":
             r_cfg["need_block_outs"] = {
                 "encoder": [0, 1, 2, 3, 4, 5],
                 "decoder": [0, 1, 2, 3, 4, 5],
+            }
+        elif model_name == valid_models[1]:
+            r_cfg["need_attns"] = {
+                "tok_coder": [0, 1, 2, 3],
+                "mel_coder": [0, 1, 2, 3],
+                "tok2mel_len_predictor": True,
+                "tok2mel_seq_translator": True,
+            }
+            r_cfg["need_block_outs"] = {
+                "tok_coder": [-1, 0, 1, 2, 3],
+                "mel_coder": [-1, 0, 1, 2, 3],
             }
     sav_dir = r_cfg["general"]["gen_dir" if gen_mode else "sav_dir"]
     os.makedirs(sav_dir, exist_ok=True)
