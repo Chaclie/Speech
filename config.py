@@ -133,9 +133,9 @@ TokVMelNet_model_config: dict[str, dict[str, Any]] = {
         "att_n_heads": 4,
         "att_hid_dim": 32,
         "att_out_dim_v": 8,
-        "conv_hid_dim": 32,
-        "conv_k_size": 1,
-        "norm_first": False,
+        "conv_hid_dim": 32,  # 模型结构被修改而弃用
+        "conv_k_size": 1,  # 模型结构被修改而弃用
+        "norm_first": False,  # 模型结构被修改而弃用
     },
     "tok2mel_stl": {
         "att_n_heads": 2,

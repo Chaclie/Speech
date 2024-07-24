@@ -425,19 +425,24 @@ class Vformer(nn.Module):
             )
             for i in range(2)
         ]
-        self.len_predictor, self.seq_translator = [
-            FFTBlock(
-                in_dim=seq_dim[1] if i else 1,
-                att_hid_dim=lr_att_hid_dim[i],
-                conv_hid_dim=lr_conv_hid_dim[i],
-                conv_k_size=lr_conv_k_size[i],
-                att_n_heads=lr_att_n_heads[i],
-                att_in_dim_k=seq_dim[0],
-                att_out_dim_v=lr_att_out_dim_v[i],
-                norm_first=lr_norm_first[i],
-            )
-            for i in range(2)
-        ]
+        self.len_predictor = Attention(
+            in_dim_q=1,
+            hid_dim=lr_att_hid_dim[0],
+            out_dim_v=lr_att_out_dim_v[0],
+            in_dim_k=seq_dim[0],
+            n_heads=lr_att_n_heads[0],
+            out_dim_o=1,
+        )
+        self.seq_translator = FFTBlock(
+            in_dim=seq_dim[1],
+            att_hid_dim=lr_att_hid_dim[1],
+            conv_hid_dim=lr_conv_hid_dim[1],
+            conv_k_size=lr_conv_k_size[1],
+            att_n_heads=lr_att_n_heads[1],
+            att_in_dim_k=seq_dim[0],
+            att_out_dim_v=lr_att_out_dim_v[1],
+            norm_first=lr_norm_first[1],
+        )
 
     def forward(
         self,
@@ -514,8 +519,7 @@ class Vformer(nn.Module):
             mask_fill_bef=-torch.inf,
             mask_aft=None,
             mask_fill_aft=0,
-            need_attn=lr_need_attns[0],
-            dropout=lr_dropouts[0],
+            need_attention=lr_need_attns[0],
         )
         B_lens_pred: Tensor = B_lens_pred.squeeze(-2).squeeze(-1)  # [batch_size]
         if B_lens is None:
@@ -540,7 +544,7 @@ class Vformer(nn.Module):
             need_attn=lr_need_attns[1],
             dropout=lr_dropouts[1],
         )
-        # X_B = self.pos_encoding(X_B)
+        X_B = self.pos_encoding(X_B)
         # =====Decode=====
         # X_B/dec_block_out: [batch_size, seq_len_B, seq_dim_B]
         # dec_attn: [batch_size, n_heads, seq_len_B, seq_len_B]
