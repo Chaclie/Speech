@@ -1,0 +1,12 @@
+- 运行项目请在main.py对应的目录的上级目录运行，因为整个项目视作一个python模块，例如main.py所在目录为project，则在project的上级目录运行python -m project.main --model="xxxx"
+- 若按照上述命令不添加任何参数则默认在指定的ckpt基础上/从头开始训练模型，否则：
+  - model参数的取值应为main.py中valid_models的元素，如"transformerTTS"
+  - 指定--gen="XXXXXX"用于生成XXXXXX对应音频(请确保文本为中文,不要含英文/数字，可带标点，标点会被过滤掉)；
+  - 指定--contrast="id1 id2 ..."用于对比编号id的标准音频和生成音频(不过此时标准音频会被作为teacher forcing输入到模型中)，若需查看无target情况下的生成效果请使用gen参数，由于使用标贝中文数据集，编号对应000001-010000；
+  - gen和contrast参数不能同时使用；
+  - 指定--name="XXXXXX"用于标记此次gen/contrast的输出文件前缀；
+- 修改config.py中xxx_runtime_config中的general下dat-dir、log-dir、gen-dir、sav-dir路径，分别表示用于训练模型的文本梅尔谱数据集路径(不是原始的标贝数据集路径，是对应datasets.py build_from_biaobei函数的out-dir参数)、训练日志路径(用于tensorboard记录)、保持测试生成的音频和绘制的图像的路径、模型保存路径，修改后的路径应对应上述实际目录相对于整个项目的相对路径(不是相对于main.py)，或者提供绝对路径也可行。
+- 加载预训练模型的路径对应于main.py中ckpt_path，与上述的dat-dir等同理，修改为相对于项目的相对路径或者绝对路径。
+- 构建数据集请修改main.py中biaobei_original_dir为实际的标贝数据集路径，修改规则类似上述。
+- 本项目cache目录下ckpt文件为训练出的transformerTTS模型权重，gen目录下contrast开头的系列文件对应000001的contrast结果（“卡尔普陪外孙玩滑梯”），test开头的系列文件对应“允公允能，日新月异”的gen结果。所给权重质量并不高，仅作为示例。
+- 模型的尝试改进(对应TokVMelNet)并没有训练出有效的结果，所以未提供权重文件。
